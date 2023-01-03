@@ -29,59 +29,62 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	leader := connect(username, leaderPort)
+	leader, conn := connect(username, leaderPort)
+	defer conn.Close()
 
-	log.Printf("User %v: Connected to front end %v", username, leaderPort)
+	log.Printf("User %v: Connected to front end %v\n", username, leaderPort)
 
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
 		command := strings.Split(scanner.Text(), " ")
 		command[0] = strings.ToLower(command[0])
 
-		for scanner.Scan() {
-			command := strings.Split(scanner.Text(), " ")
-			command[0] = strings.ToLower(command[0])
+		if command[0] == "put" {
+			Key := command[1]
+			Value := command[2]
+			fmt.Printf("Key: %v, Value: %v\n", Key, Value)
+			put := &dictionary.PutRequest{Key: Key, Value: Value}
 
-			if command[0] == "put" {
-				Key := command[1]
-				Value := command[2]
-				put := &dictionary.PutRequest{Key: Key, Value: Value}
+			var res *dictionary.PutReply
+			var err error
 
-				var res *dictionary.PutReply
-				var err error
-
+			res, err = leader.LeaderPut(ctx, put)
+			for err != nil {
+				log.Printf("ERROR: %v\n", err)
+				leaderPort++
+				log.Printf("LeaderPort: %v\n", leaderPort)
+				leader, conn = connect(username, leaderPort)
+				defer conn.Close()
 				res, err = leader.LeaderPut(ctx, put)
-				for err != nil {
-					log.Printf("ERROR: %v", err)
-					connect(username, leaderPort)
-					res, err = leader.LeaderPut(ctx, put)
-					continue
-				}
-
-				fmt.Println("result from putrequest:", res)
-
-			} else if command[0] == "get" {
-				Key := command[1]
-				get := &dictionary.GetRequest{Key: Key}
-
-				var res *dictionary.GetReply
-				var err error
-
-				res, err = leader.LeaderGet(ctx, get)
-				for err != nil {
-					log.Printf("ERROR: %v", err)
-					connect(username, leaderPort)
-					res, err = leader.LeaderGet(ctx, get)
-					continue
-				}
-
-				fmt.Println("result from getrequest:", res.Value)
+				continue
 			}
+
+			fmt.Println("result from putrequest:", res)
+
+		} else if command[0] == "get" {
+			Key := command[1]
+			get := &dictionary.GetRequest{Key: Key}
+
+			var res *dictionary.GetReply
+			var err error
+
+			res, err = leader.LeaderGet(ctx, get)
+			for err != nil {
+				log.Printf("ERROR: %v\n", err)
+				leaderPort++
+				log.Printf("LeaderPort: %v\n", leaderPort)
+				leader, conn = connect(username, leaderPort)
+				defer conn.Close()
+				res, err = leader.LeaderGet(ctx, get)
+				continue
+			}
+
+			fmt.Println("result from getrequest:", res.Value)
 		}
 	}
 }
 
-func connect(username string, leaderPort int32) dictionary.DictionaryClient {
+func connect(username string, leaderPort int32) (dictionary.DictionaryClient, *grpc.ClientConn) {
 	var leader dictionary.DictionaryClient
 	var conn *grpc.ClientConn
 	var err error
@@ -90,15 +93,14 @@ func connect(username string, leaderPort int32) dictionary.DictionaryClient {
 	fmt.Printf("Trying to dial: %v\n", leaderPort)
 	conn, err = grpc.Dial(fmt.Sprintf(":%v", leaderPort), grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
 	for err != nil {
-		log.Fatalf("User %v: Could not connect. Error: %s", username, err)
+		log.Fatalf("User %v: Could not connect. Error: %s\n", username, err)
 		leaderPort = leaderPort + 1
-		log.Printf("User %v: Trying again with port %v", username, leaderPort)
+		log.Printf("User %v: Trying again with port %v\n", username, leaderPort)
 		conn, err = grpc.Dial(fmt.Sprintf(":%v", leaderPort), grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
 	}
 	leader = dictionary.NewDictionaryClient(conn)
-	defer conn.Close()
 
-	return leader
+	return leader, conn
 }
 
 func openLogFile(path string) (*os.File, error) {

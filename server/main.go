@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"strconv"
+	"time"
 
 	dictionary "github.com/frederikgantriis/DISYS-EXAM2022/gRPC"
 	"google.golang.org/grpc"
@@ -15,11 +16,12 @@ import (
 )
 
 var hashtable map[string]string
-var follower dictionary.DictionaryClient
 var ownPort int32
 
 func main() {
 	file, _ := openLogFile("./logs/serverlog.log")
+
+	hashtable = make(map[string]string)
 
 	mw := io.MultiWriter(os.Stdout, file)
 	log.SetOutput(mw)
@@ -42,7 +44,7 @@ func main() {
 		id: int32(convOwnId),
 	})
 
-	log.Printf("server listening at %v", listen.Addr())
+	log.Printf("%v: server listening at %v", ownPort, listen.Addr())
 
 	grpcServer.Serve(listen)
 }
@@ -72,49 +74,26 @@ type Server struct {
 	id int32
 }
 
-/* func main() {
-	ownPort, _ := strconv.Atoi(os.Args[1])
-
-	file, _ := openLogFile("./logs/frontendlog.log")
-
-	mw := io.MultiWriter(os.Stdout, file)
-	log.SetOutput(mw)
-	log.SetFlags(2 | 3)
-
-	servers = make([]dictionary.DictionaryClient, 3)
-
-	for i := 0; i < 3; i++ {
-
-	}
-
-	listen, _ := net.Listen("tcp", "localhost:"+fmt.Sprint(ownPort))
-
-	grpcServer := grpc.NewServer()
-	dictionary.RegisterDictionaryServer(grpcServer, &FrontEnd{
-		id: int32(ownPort),
-	})
-
-	log.Printf("Front end listening at %v", listen.Addr())
-
-	grpcServer.Serve(listen)
-
-	log.Printf("Front end served")
-} */
-
 func (server *Server) LeaderPut(ctx context.Context, req *dictionary.PutRequest) (*dictionary.PutReply, error) {
-	w := 0
 	var reply *dictionary.PutReply
-	connect(ownPort)
+	var res *dictionary.PutReply
 
-	//TODO: Put into own hashmap
+	follower, conn, err := connect(ownPort)
 
-	res, err := follower.FollowerPut(ctx, req)
-	if err != nil {
-		log.Printf("Front end %v: ERROR - %v", server.id, err)
+	if err != nil || follower == nil || conn == nil {
+		log.Printf("Server %v: ERROR - %v\n", server.id, err)
+	} else {
+		defer conn.Close()
+		res, _ = follower.FollowerPut(ctx, req)
+		if reply == nil {
+			reply = res
+		}
 	}
-	w++
 
-	if reply == nil || (reply.GetMessage() != res.GetMessage() && reply.GetMessage() == true) {
+	hashtable[req.Key] = req.Value
+	res = &dictionary.PutReply{Message: true}
+
+	if reply == nil {
 		reply = res
 	}
 
@@ -122,19 +101,28 @@ func (server *Server) LeaderPut(ctx context.Context, req *dictionary.PutRequest)
 }
 
 func (server *Server) LeaderGet(ctx context.Context, req *dictionary.GetRequest) (*dictionary.GetReply, error) {
-	r := 0
+
 	var reply *dictionary.GetReply
-	connect(ownPort)
+	var res *dictionary.GetReply
 
-	res, err := follower.FollowerGet(ctx, req)
-	if err != nil {
-		log.Printf("Front end %v: ERROR - %v", server.id, err)
+	follower, conn, err := connect(ownPort)
+
+	if err != nil || follower == nil || conn == nil {
+		log.Printf("Server %v: ERROR - %v\n", server.id, err)
+		log.Printf("This was a get error\n")
+	} else {
+		defer conn.Close()
+		res, _ = follower.FollowerGet(ctx, req)
+		if reply == nil {
+			reply = res
+		}
 	}
-	r++
 
-	//TODO: Get own value from hashmap
+	result := hashtable[req.Key]
 
-	// Take the first result
+	log.Printf("result: %v", result)
+	res = &dictionary.GetReply{Value: result}
+
 	if reply == nil {
 		reply = res
 	}
@@ -142,14 +130,23 @@ func (server *Server) LeaderGet(ctx context.Context, req *dictionary.GetRequest)
 	return &dictionary.GetReply{Value: reply.GetValue()}, nil
 }
 
-func connect(ownPort int32) {
-	port := ownPort
+func connect(ownPort int32) (dictionary.DictionaryClient, *grpc.ClientConn, error) {
+	port := ownPort + 1
+	var conn *grpc.ClientConn
+	var err error
 
-	fmt.Printf("Trying to dial: %v\n", port)
-	conn, err := grpc.Dial(fmt.Sprintf(":%v", port), grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
-	if err != nil {
-		log.Fatalf("Front end %v: Could not connect: %s", ownPort, err)
+	go func() {
+		fmt.Printf("Trying to dial: %v\n", port)
+		conn, err = grpc.Dial(fmt.Sprintf(":%v", port), grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
+	}()
+
+	time.Sleep(2 * time.Second)
+
+	if err != nil || conn == nil {
+		log.Printf("Server %v: Could not connect: %s", ownPort, err)
+		return nil, nil, err
 	}
-	follower = dictionary.NewDictionaryClient(conn)
-	defer conn.Close()
+
+	follower := dictionary.NewDictionaryClient(conn)
+	return follower, conn, err
 }
