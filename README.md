@@ -28,3 +28,18 @@ Example of use:
 ```shl
 go run client/main.go Foo 
 ```
+
+### Input format
+To add a word to the dictionary from the client:
+```
+add [word] [defintion]
+```
+With `[word]` being a single word and `[definition]` being n-amount of words seperated by spaces
+
+To read a word to the dictionary from the client:
+```
+read [word]
+```
+With `[word]` being a single word
+
+REMINDER: The `[word]` is case sensitive
