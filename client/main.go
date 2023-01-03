@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	auction "github.com/frederikgantriis/DISYS-EXAM2022/gRPC"
+	dictionary "github.com/frederikgantriis/DISYS-EXAM2022/gRPC"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -18,7 +18,7 @@ import (
 func main() {
 	username := os.Args[1]
 	i, _ := strconv.Atoi(os.Args[2])
-	fePort := int32(i)
+	leaderPort := int32(i)
 
 	file, _ := openLogFile("./logs/clientlog.log")
 
@@ -29,49 +29,76 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// Connection to front end
-	fmt.Printf("Trying to dial: %v\n", fePort)
-	conn, err := grpc.Dial(fmt.Sprintf(":%v", fePort), grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
-	if err != nil {
-		log.Fatalf("User %v: Could not connect. Error: %s", username, err)
-	}
-	fe := auction.NewAuctionClient(conn)
-	defer conn.Close()
+	leader := connect(username, leaderPort)
 
-	log.Printf("User %v: Connected to front end %v", username, fePort)
+	log.Printf("User %v: Connected to front end %v", username, leaderPort)
 
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
 		command := strings.Split(scanner.Text(), " ")
 		command[0] = strings.ToLower(command[0])
 
-		if command[0] == "bid" {
-			bidAmount, _ := strconv.Atoi(command[1])
-			bid := &auction.BidRequest{User: username, Bid: int32(bidAmount)}
+		for scanner.Scan() {
+			command := strings.Split(scanner.Text(), " ")
+			command[0] = strings.ToLower(command[0])
 
-			res, err := fe.Bid(ctx, bid)
-			if err != nil {
-				log.Printf("ERROR: %v", err)
-				continue
-			}
-			fmt.Printf("User %v: %v", username, res.Message)
-		} else if command[0] == "result" {
-			res, err := fe.Result(ctx, &auction.Request{})
-			if err != nil {
-				log.Printf("ERROR: %v", err)
-				continue
-			}
+			if command[0] == "put" {
+				Key := command[1]
+				Value := command[2]
+				put := &dictionary.PutRequest{Key: Key, Value: Value}
 
-			fmt.Printf("User %v: %v", username, res.Message)
-		} else if command[0] == "reset" {
-			res, err := fe.Reset(ctx, &auction.Request{})
-			if err != nil {
-				log.Printf("ERROR: %v", err)
-				continue
+				var res *dictionary.PutReply
+				var err error
+
+				res, err = leader.LeaderPut(ctx, put)
+				for err != nil {
+					log.Printf("ERROR: %v", err)
+					connect(username, leaderPort)
+					res, err = leader.LeaderPut(ctx, put)
+					continue
+				}
+
+				fmt.Println("result from putrequest:", res)
+
+			} else if command[0] == "get" {
+				Key := command[1]
+				get := &dictionary.GetRequest{Key: Key}
+
+				var res *dictionary.GetReply
+				var err error
+
+				res, err = leader.LeaderGet(ctx, get)
+				for err != nil {
+					log.Printf("ERROR: %v", err)
+					connect(username, leaderPort)
+					res, err = leader.LeaderGet(ctx, get)
+					continue
+				}
+
+				fmt.Println("result from getrequest:", res.Value)
 			}
-			fmt.Printf("User %v: %v", username, res.Message)
 		}
 	}
+}
+
+func connect(username string, leaderPort int32) dictionary.DictionaryClient {
+	var leader dictionary.DictionaryClient
+	var conn *grpc.ClientConn
+	var err error
+
+	// Connection to front end
+	fmt.Printf("Trying to dial: %v\n", leaderPort)
+	conn, err = grpc.Dial(fmt.Sprintf(":%v", leaderPort), grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
+	for err != nil {
+		log.Fatalf("User %v: Could not connect. Error: %s", username, err)
+		leaderPort = leaderPort + 1
+		log.Printf("User %v: Trying again with port %v", username, leaderPort)
+		conn, err = grpc.Dial(fmt.Sprintf(":%v", leaderPort), grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
+	}
+	leader = dictionary.NewDictionaryClient(conn)
+	defer conn.Close()
+
+	return leader
 }
 
 func openLogFile(path string) (*os.File, error) {

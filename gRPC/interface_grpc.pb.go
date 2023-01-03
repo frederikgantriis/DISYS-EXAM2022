@@ -14,122 +14,194 @@ import (
 // Requires gRPC-Go v1.32.0 or later.
 const _ = grpc.SupportPackageIsVersion7
 
-// AuctionClient is the client API for Auction service.
+// DictionaryClient is the client API for Dictionary service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type AuctionClient interface {
-	Put(ctx context.Context, in *PutRequest, opts ...grpc.CallOption) (*PutReply, error)
-	Get(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*GetReply, error)
+type DictionaryClient interface {
+	FollowerPut(ctx context.Context, in *PutRequest, opts ...grpc.CallOption) (*PutReply, error)
+	FollowerGet(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*GetReply, error)
+	LeaderPut(ctx context.Context, in *PutRequest, opts ...grpc.CallOption) (*PutReply, error)
+	LeaderGet(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*GetReply, error)
 }
 
-type auctionClient struct {
+type dictionaryClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewAuctionClient(cc grpc.ClientConnInterface) AuctionClient {
-	return &auctionClient{cc}
+func NewDictionaryClient(cc grpc.ClientConnInterface) DictionaryClient {
+	return &dictionaryClient{cc}
 }
 
-func (c *auctionClient) Put(ctx context.Context, in *PutRequest, opts ...grpc.CallOption) (*PutReply, error) {
+func (c *dictionaryClient) FollowerPut(ctx context.Context, in *PutRequest, opts ...grpc.CallOption) (*PutReply, error) {
 	out := new(PutReply)
-	err := c.cc.Invoke(ctx, "/dictionary.Auction/put", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/dictionary.Dictionary/FollowerPut", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *auctionClient) Get(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*GetReply, error) {
+func (c *dictionaryClient) FollowerGet(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*GetReply, error) {
 	out := new(GetReply)
-	err := c.cc.Invoke(ctx, "/dictionary.Auction/get", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/dictionary.Dictionary/FollowerGet", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// AuctionServer is the server API for Auction service.
-// All implementations must embed UnimplementedAuctionServer
+func (c *dictionaryClient) LeaderPut(ctx context.Context, in *PutRequest, opts ...grpc.CallOption) (*PutReply, error) {
+	out := new(PutReply)
+	err := c.cc.Invoke(ctx, "/dictionary.Dictionary/LeaderPut", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dictionaryClient) LeaderGet(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*GetReply, error) {
+	out := new(GetReply)
+	err := c.cc.Invoke(ctx, "/dictionary.Dictionary/LeaderGet", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// DictionaryServer is the server API for Dictionary service.
+// All implementations must embed UnimplementedDictionaryServer
 // for forward compatibility
-type AuctionServer interface {
-	Put(context.Context, *PutRequest) (*PutReply, error)
-	Get(context.Context, *GetRequest) (*GetReply, error)
-	mustEmbedUnimplementedAuctionServer()
+type DictionaryServer interface {
+	FollowerPut(context.Context, *PutRequest) (*PutReply, error)
+	FollowerGet(context.Context, *GetRequest) (*GetReply, error)
+	LeaderPut(context.Context, *PutRequest) (*PutReply, error)
+	LeaderGet(context.Context, *GetRequest) (*GetReply, error)
+	mustEmbedUnimplementedDictionaryServer()
 }
 
-// UnimplementedAuctionServer must be embedded to have forward compatible implementations.
-type UnimplementedAuctionServer struct {
+// UnimplementedDictionaryServer must be embedded to have forward compatible implementations.
+type UnimplementedDictionaryServer struct {
 }
 
-func (UnimplementedAuctionServer) Put(context.Context, *PutRequest) (*PutReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Put not implemented")
+func (UnimplementedDictionaryServer) FollowerPut(context.Context, *PutRequest) (*PutReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FollowerPut not implemented")
 }
-func (UnimplementedAuctionServer) Get(context.Context, *GetRequest) (*GetReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Get not implemented")
+func (UnimplementedDictionaryServer) FollowerGet(context.Context, *GetRequest) (*GetReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FollowerGet not implemented")
 }
-func (UnimplementedAuctionServer) mustEmbedUnimplementedAuctionServer() {}
+func (UnimplementedDictionaryServer) LeaderPut(context.Context, *PutRequest) (*PutReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method LeaderPut not implemented")
+}
+func (UnimplementedDictionaryServer) LeaderGet(context.Context, *GetRequest) (*GetReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method LeaderGet not implemented")
+}
+func (UnimplementedDictionaryServer) mustEmbedUnimplementedDictionaryServer() {}
 
-// UnsafeAuctionServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to AuctionServer will
+// UnsafeDictionaryServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to DictionaryServer will
 // result in compilation errors.
-type UnsafeAuctionServer interface {
-	mustEmbedUnimplementedAuctionServer()
+type UnsafeDictionaryServer interface {
+	mustEmbedUnimplementedDictionaryServer()
 }
 
-func RegisterAuctionServer(s grpc.ServiceRegistrar, srv AuctionServer) {
-	s.RegisterService(&Auction_ServiceDesc, srv)
+func RegisterDictionaryServer(s grpc.ServiceRegistrar, srv DictionaryServer) {
+	s.RegisterService(&Dictionary_ServiceDesc, srv)
 }
 
-func _Auction_Put_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Dictionary_FollowerPut_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(PutRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AuctionServer).Put(ctx, in)
+		return srv.(DictionaryServer).FollowerPut(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/dictionary.Auction/put",
+		FullMethod: "/dictionary.Dictionary/FollowerPut",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuctionServer).Put(ctx, req.(*PutRequest))
+		return srv.(DictionaryServer).FollowerPut(ctx, req.(*PutRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Auction_Get_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Dictionary_FollowerGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AuctionServer).Get(ctx, in)
+		return srv.(DictionaryServer).FollowerGet(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/dictionary.Auction/get",
+		FullMethod: "/dictionary.Dictionary/FollowerGet",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuctionServer).Get(ctx, req.(*GetRequest))
+		return srv.(DictionaryServer).FollowerGet(ctx, req.(*GetRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-// Auction_ServiceDesc is the grpc.ServiceDesc for Auction service.
+func _Dictionary_LeaderPut_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PutRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DictionaryServer).LeaderPut(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/dictionary.Dictionary/LeaderPut",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DictionaryServer).LeaderPut(ctx, req.(*PutRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Dictionary_LeaderGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DictionaryServer).LeaderGet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/dictionary.Dictionary/LeaderGet",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DictionaryServer).LeaderGet(ctx, req.(*GetRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// Dictionary_ServiceDesc is the grpc.ServiceDesc for Dictionary service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var Auction_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "dictionary.Auction",
-	HandlerType: (*AuctionServer)(nil),
+var Dictionary_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "dictionary.Dictionary",
+	HandlerType: (*DictionaryServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "put",
-			Handler:    _Auction_Put_Handler,
+			MethodName: "FollowerPut",
+			Handler:    _Dictionary_FollowerPut_Handler,
 		},
 		{
-			MethodName: "get",
-			Handler:    _Auction_Get_Handler,
+			MethodName: "FollowerGet",
+			Handler:    _Dictionary_FollowerGet_Handler,
+		},
+		{
+			MethodName: "LeaderPut",
+			Handler:    _Dictionary_LeaderPut_Handler,
+		},
+		{
+			MethodName: "LeaderGet",
+			Handler:    _Dictionary_LeaderGet_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -3,9 +3,12 @@ syntax = "proto3";
 package dictionary;
 option go_package = "https://github.com/frederikgantriis/DISYS-EXAM2022;dictionary";
 
-service Auction {
-    rpc put (PutRequest) returns (PutReply) {}
-    rpc get (GetRequest) returns (GetReply) {}
+service Dictionary {
+    rpc FollowerPut (PutRequest) returns (PutReply) {}
+    rpc FollowerGet (GetRequest) returns (GetReply) {}
+
+    rpc LeaderPut (PutRequest) returns (PutReply) {}
+    rpc LeaderGet (GetRequest) returns (GetReply) {}
 }
 
 message GetRequest {
@@ -18,7 +21,7 @@ message PutRequest {
 }
 
 message PutReply {
-    bool outcome = 1;
+    bool message = 1;
 }
 
 message GetReply {

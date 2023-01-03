@@ -2,16 +2,21 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log"
 	"net"
 	"os"
 	"strconv"
-	"time"
 
-	auction "github.com/frederikgantriis/DISYS-EXAM2022/gRPC"
+	dictionary "github.com/frederikgantriis/DISYS-EXAM2022/gRPC"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
+
+var hashtable map[string]string
+var follower dictionary.DictionaryClient
+var ownPort int32
 
 func main() {
 	file, _ := openLogFile("./logs/serverlog.log")
@@ -30,13 +35,11 @@ func main() {
 	listen, _ := net.Listen("tcp", "localhost:300"+ownId)
 
 	convOwnId, _ := strconv.ParseInt(ownId, 10, 32)
+	ownPort = int32(3000) + int32(convOwnId)
 
 	grpcServer := grpc.NewServer()
-	auction.RegisterAuctionServer(grpcServer, &Server{
-		id:                int32(convOwnId),
-		highestBid:        0,
-		timeLeft:          -1,
-		currentWinnerUser: "",
+	dictionary.RegisterDictionaryServer(grpcServer, &Server{
+		id: int32(convOwnId),
 	})
 
 	log.Printf("server listening at %v", listen.Addr())
@@ -44,51 +47,16 @@ func main() {
 	grpcServer.Serve(listen)
 }
 
-func (s *Server) ServerPut(ctx context.Context, req *auction.PutRequest) (*auction.OutcomeReply, error) {
-	// if a bid is made when timeLeft is -1, a new auction starts
-	log.Printf("server %v: recieved a bid from %v. Amount: %v", s.id, req.GetUser(), req.GetBid())
-	if s.timeLeft == -1 {
-		s.highestBid = 0
-		s.currentWinnerUser = ""
-		s.timeLeft = 60
+func (s *Server) FollowerPut(ctx context.Context, req *dictionary.PutRequest) (*dictionary.PutReply, error) {
+	hashtable[req.Key] = req.Value
 
-		go func() {
-			// timer stops at 0 so a new auction cannot be started immediately by a new bid
-			for s.timeLeft > 0 {
-				s.timeLeft--
-				if s.timeLeft%10 == 0 {
-					log.Printf("time left of auction at server %v: %v seconds", s.id, s.timeLeft)
-				}
-				time.Sleep(time.Second)
-			}
-		}()
-
-		log.Printf("server %v: started a new auction", s.id)
-	}
-
-	if (req.Bid > s.highestBid) && (s.timeLeft > 0) {
-		s.highestBid = req.Bid
-		s.currentWinnerUser = req.User
-		return &auction.OutcomeReply{Outcome: auction.Outcomes(SUCCESS)}, nil
-	} else {
-		return &auction.OutcomeReply{Outcome: auction.Outcomes(FAIL)}, nil
-	}
+	return &dictionary.PutReply{Message: true}, nil
 }
 
-func (s *Server) ServerResult(ctx context.Context, resReq *auction.Request) (*auction.ResultReply, error) {
-	return &auction.ResultReply{User: s.currentWinnerUser, HighestBid: s.highestBid, TimeLeft: s.timeLeft}, nil
-}
+func (s *Server) FollowerGet(ctx context.Context, req *dictionary.GetRequest) (*dictionary.GetReply, error) {
+	result := hashtable[req.Key]
 
-func (s *Server) ServerReset(ctx context.Context, resReq *auction.Request) (*auction.OutcomeReply, error) {
-	// Don't reset if auction isn't over
-	if s.timeLeft > 0 {
-		return &auction.OutcomeReply{Outcome: auction.Outcomes_FAIL}, nil
-	}
-
-	// timeLeft == -1 means that a new auction will be started when a bid is made
-	s.timeLeft = -1
-	log.Printf("server %v: resetted the auction", s.id)
-	return &auction.OutcomeReply{}, nil
+	return &dictionary.GetReply{Value: result}, nil
 }
 
 func openLogFile(path string) (*os.File, error) {
@@ -100,16 +68,88 @@ func openLogFile(path string) (*os.File, error) {
 }
 
 type Server struct {
-	auction.UnimplementedAuctionServer
-	id                int32
-	highestBid        int32
-	currentWinnerUser string
-	timeLeft          int32
+	dictionary.UnimplementedDictionaryServer
+	id int32
 }
 
-type Outcomes int32
+/* func main() {
+	ownPort, _ := strconv.Atoi(os.Args[1])
 
-const (
-	FAIL    Outcomes = 0
-	SUCCESS Outcomes = 1
-)
+	file, _ := openLogFile("./logs/frontendlog.log")
+
+	mw := io.MultiWriter(os.Stdout, file)
+	log.SetOutput(mw)
+	log.SetFlags(2 | 3)
+
+	servers = make([]dictionary.DictionaryClient, 3)
+
+	for i := 0; i < 3; i++ {
+
+	}
+
+	listen, _ := net.Listen("tcp", "localhost:"+fmt.Sprint(ownPort))
+
+	grpcServer := grpc.NewServer()
+	dictionary.RegisterDictionaryServer(grpcServer, &FrontEnd{
+		id: int32(ownPort),
+	})
+
+	log.Printf("Front end listening at %v", listen.Addr())
+
+	grpcServer.Serve(listen)
+
+	log.Printf("Front end served")
+} */
+
+func (server *Server) LeaderPut(ctx context.Context, req *dictionary.PutRequest) (*dictionary.PutReply, error) {
+	w := 0
+	var reply *dictionary.PutReply
+	connect(ownPort)
+
+	//TODO: Put into own hashmap
+
+	res, err := follower.FollowerPut(ctx, req)
+	if err != nil {
+		log.Printf("Front end %v: ERROR - %v", server.id, err)
+	}
+	w++
+
+	if reply == nil || (reply.GetMessage() != res.GetMessage() && reply.GetMessage() == true) {
+		reply = res
+	}
+
+	return &dictionary.PutReply{Message: reply.GetMessage()}, nil
+}
+
+func (server *Server) LeaderGet(ctx context.Context, req *dictionary.GetRequest) (*dictionary.GetReply, error) {
+	r := 0
+	var reply *dictionary.GetReply
+	connect(ownPort)
+
+	res, err := follower.FollowerGet(ctx, req)
+	if err != nil {
+		log.Printf("Front end %v: ERROR - %v", server.id, err)
+	}
+	r++
+
+	//TODO: Get own value from hashmap
+
+	// Take the first result
+	if reply == nil {
+		reply = res
+	}
+
+	return &dictionary.GetReply{Value: reply.GetValue()}, nil
+}
+
+func connect(ownPort int32) {
+	port := ownPort
+
+	fmt.Printf("Trying to dial: %v\n", port)
+	conn, err := grpc.Dial(fmt.Sprintf(":%v", port), grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
+	if err != nil {
+		log.Fatalf("Front end %v: Could not connect: %s", ownPort, err)
+	}
+	follower = dictionary.NewDictionaryClient(conn)
+	defer conn.Close()
+}
