@@ -28,7 +28,7 @@ func main() {
 	log.SetFlags(2 | 3)
 
 	if len(os.Args) != 2 {
-		log.Printf("Please input a number to run the server on. Fx. inputting 3 would run the server on port 3003")
+		log.Printf("Please inAdd a number to run the server on. Fx. inAddting 3 would run the server on port 3003")
 		return
 	}
 
@@ -49,16 +49,16 @@ func main() {
 	grpcServer.Serve(listen)
 }
 
-func (s *Server) FollowerPut(ctx context.Context, req *dictionary.PutRequest) (*dictionary.PutReply, error) {
+func (s *Server) FollowerAdd(ctx context.Context, req *dictionary.AddRequest) (*dictionary.AddReply, error) {
 	hashtable[req.Key] = req.Value
 
-	return &dictionary.PutReply{Message: true}, nil
+	return &dictionary.AddReply{Message: true}, nil
 }
 
-func (s *Server) FollowerGet(ctx context.Context, req *dictionary.GetRequest) (*dictionary.GetReply, error) {
+func (s *Server) FollowerRead(ctx context.Context, req *dictionary.ReadRequest) (*dictionary.ReadReply, error) {
 	result := hashtable[req.Key]
 
-	return &dictionary.GetReply{Value: result}, nil
+	return &dictionary.ReadReply{Value: result}, nil
 }
 
 func openLogFile(path string) (*os.File, error) {
@@ -74,9 +74,9 @@ type Server struct {
 	id int32
 }
 
-func (server *Server) LeaderPut(ctx context.Context, req *dictionary.PutRequest) (*dictionary.PutReply, error) {
-	var reply *dictionary.PutReply
-	var res *dictionary.PutReply
+func (server *Server) LeaderAdd(ctx context.Context, req *dictionary.AddRequest) (*dictionary.AddReply, error) {
+	var reply *dictionary.AddReply
+	var res *dictionary.AddReply
 
 	follower, conn, err := connect(ownPort)
 
@@ -84,50 +84,47 @@ func (server *Server) LeaderPut(ctx context.Context, req *dictionary.PutRequest)
 		log.Printf("Server %v: ERROR - %v\n", server.id, err)
 	} else {
 		defer conn.Close()
-		res, _ = follower.FollowerPut(ctx, req)
+		res, _ = follower.FollowerAdd(ctx, req)
 		if reply == nil {
 			reply = res
 		}
 	}
 
 	hashtable[req.Key] = req.Value
-	res = &dictionary.PutReply{Message: true}
+	res = &dictionary.AddReply{Message: true}
 
 	if reply == nil {
 		reply = res
 	}
 
-	return &dictionary.PutReply{Message: reply.GetMessage()}, nil
+	return &dictionary.AddReply{Message: reply.GetMessage()}, nil
 }
 
-func (server *Server) LeaderGet(ctx context.Context, req *dictionary.GetRequest) (*dictionary.GetReply, error) {
+func (server *Server) LeaderRead(ctx context.Context, req *dictionary.ReadRequest) (*dictionary.ReadReply, error) {
 
-	var reply *dictionary.GetReply
-	var res *dictionary.GetReply
+	var reply *dictionary.ReadReply
+	var res *dictionary.ReadReply
 
 	follower, conn, err := connect(ownPort)
 
 	if err != nil || follower == nil || conn == nil {
 		log.Printf("Server %v: ERROR - %v\n", server.id, err)
-		log.Printf("This was a get error\n")
 	} else {
 		defer conn.Close()
-		res, _ = follower.FollowerGet(ctx, req)
+		res, _ = follower.FollowerRead(ctx, req)
 		if reply == nil {
 			reply = res
 		}
 	}
 
 	result := hashtable[req.Key]
-
-	log.Printf("result: %v", result)
-	res = &dictionary.GetReply{Value: result}
+	res = &dictionary.ReadReply{Value: result}
 
 	if reply == nil {
 		reply = res
 	}
 
-	return &dictionary.GetReply{Value: reply.GetValue()}, nil
+	return &dictionary.ReadReply{Value: reply.GetValue()}, nil
 }
 
 func connect(ownPort int32) (dictionary.DictionaryClient, *grpc.ClientConn, error) {

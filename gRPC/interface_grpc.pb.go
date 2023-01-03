@@ -18,10 +18,10 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type DictionaryClient interface {
-	FollowerPut(ctx context.Context, in *PutRequest, opts ...grpc.CallOption) (*PutReply, error)
-	FollowerGet(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*GetReply, error)
-	LeaderPut(ctx context.Context, in *PutRequest, opts ...grpc.CallOption) (*PutReply, error)
-	LeaderGet(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*GetReply, error)
+	FollowerAdd(ctx context.Context, in *AddRequest, opts ...grpc.CallOption) (*AddReply, error)
+	FollowerRead(ctx context.Context, in *ReadRequest, opts ...grpc.CallOption) (*ReadReply, error)
+	LeaderAdd(ctx context.Context, in *AddRequest, opts ...grpc.CallOption) (*AddReply, error)
+	LeaderRead(ctx context.Context, in *ReadRequest, opts ...grpc.CallOption) (*ReadReply, error)
 }
 
 type dictionaryClient struct {
@@ -32,36 +32,36 @@ func NewDictionaryClient(cc grpc.ClientConnInterface) DictionaryClient {
 	return &dictionaryClient{cc}
 }
 
-func (c *dictionaryClient) FollowerPut(ctx context.Context, in *PutRequest, opts ...grpc.CallOption) (*PutReply, error) {
-	out := new(PutReply)
-	err := c.cc.Invoke(ctx, "/dictionary.Dictionary/FollowerPut", in, out, opts...)
+func (c *dictionaryClient) FollowerAdd(ctx context.Context, in *AddRequest, opts ...grpc.CallOption) (*AddReply, error) {
+	out := new(AddReply)
+	err := c.cc.Invoke(ctx, "/dictionary.Dictionary/FollowerAdd", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *dictionaryClient) FollowerGet(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*GetReply, error) {
-	out := new(GetReply)
-	err := c.cc.Invoke(ctx, "/dictionary.Dictionary/FollowerGet", in, out, opts...)
+func (c *dictionaryClient) FollowerRead(ctx context.Context, in *ReadRequest, opts ...grpc.CallOption) (*ReadReply, error) {
+	out := new(ReadReply)
+	err := c.cc.Invoke(ctx, "/dictionary.Dictionary/FollowerRead", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *dictionaryClient) LeaderPut(ctx context.Context, in *PutRequest, opts ...grpc.CallOption) (*PutReply, error) {
-	out := new(PutReply)
-	err := c.cc.Invoke(ctx, "/dictionary.Dictionary/LeaderPut", in, out, opts...)
+func (c *dictionaryClient) LeaderAdd(ctx context.Context, in *AddRequest, opts ...grpc.CallOption) (*AddReply, error) {
+	out := new(AddReply)
+	err := c.cc.Invoke(ctx, "/dictionary.Dictionary/LeaderAdd", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *dictionaryClient) LeaderGet(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*GetReply, error) {
-	out := new(GetReply)
-	err := c.cc.Invoke(ctx, "/dictionary.Dictionary/LeaderGet", in, out, opts...)
+func (c *dictionaryClient) LeaderRead(ctx context.Context, in *ReadRequest, opts ...grpc.CallOption) (*ReadReply, error) {
+	out := new(ReadReply)
+	err := c.cc.Invoke(ctx, "/dictionary.Dictionary/LeaderRead", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -72,10 +72,10 @@ func (c *dictionaryClient) LeaderGet(ctx context.Context, in *GetRequest, opts .
 // All implementations must embed UnimplementedDictionaryServer
 // for forward compatibility
 type DictionaryServer interface {
-	FollowerPut(context.Context, *PutRequest) (*PutReply, error)
-	FollowerGet(context.Context, *GetRequest) (*GetReply, error)
-	LeaderPut(context.Context, *PutRequest) (*PutReply, error)
-	LeaderGet(context.Context, *GetRequest) (*GetReply, error)
+	FollowerAdd(context.Context, *AddRequest) (*AddReply, error)
+	FollowerRead(context.Context, *ReadRequest) (*ReadReply, error)
+	LeaderAdd(context.Context, *AddRequest) (*AddReply, error)
+	LeaderRead(context.Context, *ReadRequest) (*ReadReply, error)
 	mustEmbedUnimplementedDictionaryServer()
 }
 
@@ -83,17 +83,17 @@ type DictionaryServer interface {
 type UnimplementedDictionaryServer struct {
 }
 
-func (UnimplementedDictionaryServer) FollowerPut(context.Context, *PutRequest) (*PutReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method FollowerPut not implemented")
+func (UnimplementedDictionaryServer) FollowerAdd(context.Context, *AddRequest) (*AddReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FollowerAdd not implemented")
 }
-func (UnimplementedDictionaryServer) FollowerGet(context.Context, *GetRequest) (*GetReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method FollowerGet not implemented")
+func (UnimplementedDictionaryServer) FollowerRead(context.Context, *ReadRequest) (*ReadReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FollowerRead not implemented")
 }
-func (UnimplementedDictionaryServer) LeaderPut(context.Context, *PutRequest) (*PutReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method LeaderPut not implemented")
+func (UnimplementedDictionaryServer) LeaderAdd(context.Context, *AddRequest) (*AddReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method LeaderAdd not implemented")
 }
-func (UnimplementedDictionaryServer) LeaderGet(context.Context, *GetRequest) (*GetReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method LeaderGet not implemented")
+func (UnimplementedDictionaryServer) LeaderRead(context.Context, *ReadRequest) (*ReadReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method LeaderRead not implemented")
 }
 func (UnimplementedDictionaryServer) mustEmbedUnimplementedDictionaryServer() {}
 
@@ -108,74 +108,74 @@ func RegisterDictionaryServer(s grpc.ServiceRegistrar, srv DictionaryServer) {
 	s.RegisterService(&Dictionary_ServiceDesc, srv)
 }
 
-func _Dictionary_FollowerPut_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(PutRequest)
+func _Dictionary_FollowerAdd_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DictionaryServer).FollowerPut(ctx, in)
+		return srv.(DictionaryServer).FollowerAdd(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/dictionary.Dictionary/FollowerPut",
+		FullMethod: "/dictionary.Dictionary/FollowerAdd",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DictionaryServer).FollowerPut(ctx, req.(*PutRequest))
+		return srv.(DictionaryServer).FollowerAdd(ctx, req.(*AddRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Dictionary_FollowerGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetRequest)
+func _Dictionary_FollowerRead_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReadRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DictionaryServer).FollowerGet(ctx, in)
+		return srv.(DictionaryServer).FollowerRead(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/dictionary.Dictionary/FollowerGet",
+		FullMethod: "/dictionary.Dictionary/FollowerRead",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DictionaryServer).FollowerGet(ctx, req.(*GetRequest))
+		return srv.(DictionaryServer).FollowerRead(ctx, req.(*ReadRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Dictionary_LeaderPut_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(PutRequest)
+func _Dictionary_LeaderAdd_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DictionaryServer).LeaderPut(ctx, in)
+		return srv.(DictionaryServer).LeaderAdd(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/dictionary.Dictionary/LeaderPut",
+		FullMethod: "/dictionary.Dictionary/LeaderAdd",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DictionaryServer).LeaderPut(ctx, req.(*PutRequest))
+		return srv.(DictionaryServer).LeaderAdd(ctx, req.(*AddRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Dictionary_LeaderGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetRequest)
+func _Dictionary_LeaderRead_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReadRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DictionaryServer).LeaderGet(ctx, in)
+		return srv.(DictionaryServer).LeaderRead(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/dictionary.Dictionary/LeaderGet",
+		FullMethod: "/dictionary.Dictionary/LeaderRead",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DictionaryServer).LeaderGet(ctx, req.(*GetRequest))
+		return srv.(DictionaryServer).LeaderRead(ctx, req.(*ReadRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -188,20 +188,20 @@ var Dictionary_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*DictionaryServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "FollowerPut",
-			Handler:    _Dictionary_FollowerPut_Handler,
+			MethodName: "FollowerAdd",
+			Handler:    _Dictionary_FollowerAdd_Handler,
 		},
 		{
-			MethodName: "FollowerGet",
-			Handler:    _Dictionary_FollowerGet_Handler,
+			MethodName: "FollowerRead",
+			Handler:    _Dictionary_FollowerRead_Handler,
 		},
 		{
-			MethodName: "LeaderPut",
-			Handler:    _Dictionary_LeaderPut_Handler,
+			MethodName: "LeaderAdd",
+			Handler:    _Dictionary_LeaderAdd_Handler,
 		},
 		{
-			MethodName: "LeaderGet",
-			Handler:    _Dictionary_LeaderGet_Handler,
+			MethodName: "LeaderRead",
+			Handler:    _Dictionary_LeaderRead_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

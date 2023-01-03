@@ -39,47 +39,51 @@ func main() {
 		command := strings.Split(scanner.Text(), " ")
 		command[0] = strings.ToLower(command[0])
 
-		if command[0] == "put" {
+		if command[0] == "add" {
 			Key := command[1]
-			Value := command[2]
+			var Value string
+
+			for _, v := range command[2:] {
+				Value += v + " "
+			}
 			fmt.Printf("Key: %v, Value: %v\n", Key, Value)
-			put := &dictionary.PutRequest{Key: Key, Value: Value}
+			Add := &dictionary.AddRequest{Key: Key, Value: Value}
 
-			var res *dictionary.PutReply
+			var res *dictionary.AddReply
 			var err error
 
-			res, err = leader.LeaderPut(ctx, put)
+			res, err = leader.LeaderAdd(ctx, Add)
 			for err != nil {
 				log.Printf("ERROR: %v\n", err)
 				leaderPort++
 				log.Printf("LeaderPort: %v\n", leaderPort)
 				leader, conn = connect(username, leaderPort)
 				defer conn.Close()
-				res, err = leader.LeaderPut(ctx, put)
+				res, err = leader.LeaderAdd(ctx, Add)
 				continue
 			}
 
-			fmt.Println("result from putrequest:", res)
+			fmt.Println("result from Addrequest:", res)
 
-		} else if command[0] == "get" {
+		} else if command[0] == "read" {
 			Key := command[1]
-			get := &dictionary.GetRequest{Key: Key}
+			Read := &dictionary.ReadRequest{Key: Key}
 
-			var res *dictionary.GetReply
+			var res *dictionary.ReadReply
 			var err error
 
-			res, err = leader.LeaderGet(ctx, get)
+			res, err = leader.LeaderRead(ctx, Read)
 			for err != nil {
 				log.Printf("ERROR: %v\n", err)
 				leaderPort++
 				log.Printf("LeaderPort: %v\n", leaderPort)
 				leader, conn = connect(username, leaderPort)
 				defer conn.Close()
-				res, err = leader.LeaderGet(ctx, get)
+				res, err = leader.LeaderRead(ctx, Read)
 				continue
 			}
 
-			fmt.Println("result from getrequest:", res.Value)
+			fmt.Println("result from Readrequest:", res.Value)
 		}
 	}
 }
