@@ -118,6 +118,10 @@ func (server *Server) LeaderRead(ctx context.Context, req *dictionary.ReadReques
 	}
 
 	result := hashtable[req.Key]
+	if result == "" {
+		return nil, nil
+	}
+
 	res = &dictionary.ReadReply{Value: result}
 
 	if reply == nil {
