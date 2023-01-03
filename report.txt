@@ -5,11 +5,13 @@ I hereby declare that this submission was created in its entirety by me and only
 The implementation is based upon code from the Mandatory activity regarding implementing an Auction System.
 
 ## The Architecture of the system
-The system consist of n amount of clients and 2 servers (nodes). Since the system had to implement passive replication, the leader is automatically the server running on port 3000. Since the clients knows this, they will automatically try to connect to that port. When a user inputs adds a word, it will start by calling the "LeaderAdd" method at the leader server. Then, the leader will start by sending the request to potential followers by calling "FollowerAdd", and afterwards adding to its own local dictionary. The same procedure goes for the client wanting to get a definition from the dictionary.
+The system consist of n amount of clients and 2 servers (nodes). Since the system had to implement passive replication, the leader is automatically the server running on port 3000. Since the clients knows that port the initial leader has, it will automatically try to connect to that port. When a user inputs adds a word, it will start by calling the "LeaderAdd" method at the leader server. Then, the leader will start by sending the request to potential followers by calling "FollowerAdd", and afterwards adding to its own local dictionary. The same procedure goes for the client wanting to get a definition from the dictionary. Here the leader returns the first result the it gets (either from the follower or the leader itself).
 
 If the client fails to connect to the leader with port 3000, it will automatically try to connect to the server with the port 3001, and so on. The server having port 3001, will automatically recognize it is the leader, since its "Leader"-method has been called.
 
 The leader connects to the follower each time an add or read operation has been called.
+
+Lastly, I assume that the client never would call a 'read'-operation on a word that hasn't been added to the dictionary
 
 ## Answers to questions
 ### A 
