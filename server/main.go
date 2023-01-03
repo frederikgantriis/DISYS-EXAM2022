@@ -133,7 +133,7 @@ func connect(ownPort int32) (dictionary.DictionaryClient, *grpc.ClientConn, erro
 	var err error
 
 	go func() {
-		fmt.Printf("Trying to dial: %v\n", port)
+		log.Printf("Trying to dial: %v\n", port)
 		conn, err = grpc.Dial(fmt.Sprintf(":%v", port), grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
 	}()
 

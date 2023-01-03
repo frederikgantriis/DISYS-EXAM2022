@@ -7,7 +7,6 @@ import (
 	"io"
 	"log"
 	"os"
-	"strconv"
 	"strings"
 
 	dictionary "github.com/frederikgantriis/DISYS-EXAM2022/gRPC"
@@ -17,8 +16,7 @@ import (
 
 func main() {
 	username := os.Args[1]
-	i, _ := strconv.Atoi(os.Args[2])
-	leaderPort := int32(i)
+	leaderPort := int32(3000)
 
 	file, _ := openLogFile("./logs/clientlog.log")
 
@@ -46,7 +44,7 @@ func main() {
 			for _, v := range command[2:] {
 				Value += v + " "
 			}
-			fmt.Printf("Key: %v, Value: %v\n", Key, Value)
+			log.Printf("Key: %v, Value: %v\n", Key, Value)
 			Add := &dictionary.AddRequest{Key: Key, Value: Value}
 
 			var res *dictionary.AddReply
@@ -56,14 +54,13 @@ func main() {
 			for err != nil {
 				log.Printf("ERROR: %v\n", err)
 				leaderPort++
-				log.Printf("LeaderPort: %v\n", leaderPort)
 				leader, conn = connect(username, leaderPort)
 				defer conn.Close()
 				res, err = leader.LeaderAdd(ctx, Add)
 				continue
 			}
 
-			fmt.Println("result from Addrequest:", res)
+			log.Println("result from Addrequest:", res)
 
 		} else if command[0] == "read" {
 			Key := command[1]
@@ -76,14 +73,13 @@ func main() {
 			for err != nil {
 				log.Printf("ERROR: %v\n", err)
 				leaderPort++
-				log.Printf("LeaderPort: %v\n", leaderPort)
 				leader, conn = connect(username, leaderPort)
 				defer conn.Close()
 				res, err = leader.LeaderRead(ctx, Read)
 				continue
 			}
 
-			fmt.Println("result from Readrequest:", res.Value)
+			log.Println("result from Readrequest:", res.Value)
 		}
 	}
 }
@@ -94,7 +90,7 @@ func connect(username string, leaderPort int32) (dictionary.DictionaryClient, *g
 	var err error
 
 	// Connection to front end
-	fmt.Printf("Trying to dial: %v\n", leaderPort)
+	log.Printf("Trying to dial: %v\n", leaderPort)
 	conn, err = grpc.Dial(fmt.Sprintf(":%v", leaderPort), grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
 	for err != nil {
 		log.Fatalf("User %v: Could not connect. Error: %s\n", username, err)

@@ -1,0 +1,2 @@
+# The Architecture of the system
+The system consist of 
