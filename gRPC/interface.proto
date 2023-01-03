@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package dictionary;
+option go_package = "https://github.com/frederikgantriis/DISYS-EXAM2022;dictionary";
+
+service Auction {
+    rpc put (PutRequest) returns (PutReply) {}
+    rpc get (GetRequest) returns (GetReply) {}
+}
+
+message GetRequest {
+    string key = 1;
+}
+
+message PutRequest {
+    string key = 1;
+    string value = 2;
+}
+
+message PutReply {
+    bool outcome = 1;
+}
+
+message GetReply {
+    string value = 1;
+}
